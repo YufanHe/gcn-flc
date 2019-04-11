@@ -1,1 +1,2 @@
 *.log
+utils/__pycache__/*
