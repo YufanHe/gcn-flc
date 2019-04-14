@@ -17,4 +17,4 @@ Most importantly, you need a liscense from gurobi. You can get one from [here](h
 ## Graph generation
 
 An example of graph
-![image](http://github.com/itmyhome2013/readme_add_pic/raw/master/images/nongshalie.jpg)
+![image](https://github.com/YufanHe/gcn-flc/blob/dev_pengfei/media/graph_ex.png)
