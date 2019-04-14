@@ -96,6 +96,7 @@ def main():
         fig = visualize(i, i['x'], i['y'], False)
         fig.show()
         input('any key to continue')
+        fig.clear()
     # savedata(data, cfg)
 
 

@@ -13,3 +13,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/your/absolute/path/gurobi811/linux64/li
 ```
 
 Most importantly, you need a liscense from gurobi. You can get one from [here](http://www.gurobi.com/downloads/licenses/license-center). Also, you need to connect hopkins network or use `Pulse Secure`
+
+## Graph generation
+
+An example of graph
+![image](http://github.com/itmyhome2013/readme_add_pic/raw/master/images/nongshalie.jpg)
