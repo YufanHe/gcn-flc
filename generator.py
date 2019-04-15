@@ -2,6 +2,8 @@ import os
 import numpy as np
 import json
 from utils.datautils import gurobi_solver, visualize
+from utils.graphutils import graph_generation, vis_graph, save_graph
+from matplotlib import pyplot as plt
 import argparse
 import datetime
 import pdb
@@ -45,26 +47,36 @@ def generate_data(cfg):
         facilities = list(map(list, 
                            list(zip(np.random.rand(f_num)*cfg['world_size'][0],
                                     np.random.rand(f_num)*cfg['world_size'][1]))))   
-        charge = list(np.random.randint(cfg['facility_cost'][0],
-                                   cfg['facility_cost'][1], f_num))
+        charge = np.random.randint(cfg['facility_cost'][0],
+                                   cfg['facility_cost'][1], f_num).tolist()
         c_num = cfg['total_nodes'] - f_num
         clients = list(map(list, 
                            list(zip(np.random.rand(c_num)*cfg['world_size'][0],
                                     np.random.rand(c_num)*cfg['world_size'][1]))))
-        alpha = cfg['travel_cost']     
+        alpha = cfg['travel_cost']   
+
+        _,_,gen_graph = graph_generation(np.array(facilities),np.array(clients))
+        graph_dict = save_graph(gen_graph, f_num, c_num)
+        # # visulize the graph
+        # nodes = np.concatenate((np.array(facilities),np.array(clients)),axis = 0)
+        # vis_graph(nodes,gen_graph,f_num,c_num)
+        # plt.show()
+        
         data.append({
             'clients': clients,
             'facilities': facilities,
             'charge': charge,
-            'alpha': alpha
+            'alpha': alpha,
+            'graph_dict':graph_dict
         })
         x, y, d = gurobi_solver(data[s])
         data[s]['x'] = x
         data[s]['y'] = y
-        data[s]['d'] = d
+        data[s]['d'] = d.tolist()
+
     return data
 
-def savedata(data, cfg, name=None):
+def savedata(data, cfg, name=None,data_dir = 'dataset/synthetic'):
     """
     Data will be saved in json format
     save the configuration and data both
@@ -75,16 +87,15 @@ def savedata(data, cfg, name=None):
         now = datetime.datetime.now()
         name = 'dataset-%02d-%02d.json' % (now.day, now.month)
     
-    for s in len(data):
-        # s_data.data[s] = convert_graph(data[s])
-        # with open(name, 'w') as fp:
-        #     fp.write(json.dumps(graph, indent=2))
-        raise NotImplementedError
+    for s in range(len(data)):
+        with open(os.path.join(data_dir,name), 'w') as fp:
+            fp.write(json.dumps(data[s], indent=2))
+        # raise NotImplementedError
 
-def convert_graph(data):
-    """ Convert data to graph structure
-    """
-    raise NotImplementedError
+# def convert_graph(data):
+#     """ Convert data to graph structure
+#     """
+#     raise NotImplementedError
 
 
 def main():
@@ -97,7 +108,7 @@ def main():
         fig.show()
         input('any key to continue')
         fig.clear()
-    # savedata(data, cfg)
+    savedata(data, cfg)
 
 
 

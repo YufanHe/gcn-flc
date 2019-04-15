@@ -8,6 +8,7 @@ def distance(a,b):
     dx = a[0] - b[0]
     dy = a[1] - b[1]
     return math.sqrt(dx*dx + dy*dy)
+    
 def gurobi_solver(data):
     """
     Exact solver for facility location

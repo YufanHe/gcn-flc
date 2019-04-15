@@ -7,7 +7,7 @@
         "facility_num":[5,30],
         "world_size":[100,100],
         "random_seed":12345,
-        "sample_num":10,        
+        "sample_num":1,        
         "facility_cost":[50,100],
         "travel_cost": 1
     }
