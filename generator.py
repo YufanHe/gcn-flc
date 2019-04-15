@@ -85,10 +85,13 @@ def savedata(data, cfg, name=None,data_dir = 'dataset/synthetic'):
     s_data = {'cfg':cfg, 'data':{}}
     if not name:
         now = datetime.datetime.now()
-        name = 'dataset-%02d-%02d.json' % (now.day, now.month)
-    
-    for s in range(len(data)):
-        with open(os.path.join(data_dir,name), 'w') as fp:
+        name = 'dataset-%02d-%02d-%2d-%2d-%2d.json' % (now.day, now.month, now.hour, now.minute, now.second)
+    # # remove existing files
+    # if os.path.exists(os.path.join(data_dir,name)):
+    #     os.remove(os.path.join(data_dir,name))
+
+    with open(os.path.join(data_dir,name), 'w') as fp:
+        for s in range(len(data)):
             fp.write(json.dumps(data[s], indent=2))
         # raise NotImplementedError
 
@@ -103,11 +106,11 @@ def main():
     args = parser.parse_args()
     cfg = load_config(args.config)['data']
     data = generate_data(cfg)
-    for i in data:
-        fig = visualize(i, i['x'], i['y'], False)
-        fig.show()
-        input('any key to continue')
-        fig.clear()
+    # for i in data:
+    #     fig = visualize(i, i['x'], i['y'], False)
+    #     fig.show()
+    #     input('any key to continue')
+    #     fig.clear()
     savedata(data, cfg)
 
 

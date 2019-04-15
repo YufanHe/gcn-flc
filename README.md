@@ -24,6 +24,10 @@ Most importantly, you need a liscense from gurobi. You can get one from [here](h
 
 on the root folder which has `setup.py`.
 
+###
+
+Generated data can be downloaded [here](https://drive.google.com/open?id=1A681BhENhVmR-PEZiLzN5iJ5paz2-40K)
+
 ## Examples
 
 ### Graph generation
