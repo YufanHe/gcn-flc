@@ -1,8 +1,8 @@
 import os
 import numpy as np
 import json
-from utils.datautils import gurobi_solver, visualize
-from utils.graphutils import graph_generation, vis_graph, save_graph
+from gcn_flc.datautils import gurobi_solver, visualize
+from gcn_flc.graphutils import graph_generation, vis_graph, save_graph
 from matplotlib import pyplot as plt
 import argparse
 import datetime

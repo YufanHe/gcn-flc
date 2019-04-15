@@ -1,6 +1,8 @@
 from gurobipy import *
 import math
 from matplotlib import pyplot as plt
+from gcn_flc.graphutils import load_adj, vis_graph
+import networkx as nx
 import numpy as np
 import pdb
 
@@ -8,7 +10,11 @@ def distance(a,b):
     dx = a[0] - b[0]
     dy = a[1] - b[1]
     return math.sqrt(dx*dx + dy*dy)
-    
+
+def graph_dis(G,c_indx,f_inx,numFacilities):
+    distance=nx.dijkstra_path_length(G, source = f_inx, target = c_indx + numFacilities)
+    return distance
+
 def gurobi_solver(data):
     """
     Exact solver for facility location
@@ -34,6 +40,8 @@ def gurobi_solver(data):
     numFacilities = len(facilities)
     numClients = len(clients)
 
+    G = load_adj(data['graph_dict'], numFacilities + numClients)
+
     m = Model()
 
     # Add variables
@@ -48,7 +56,7 @@ def gurobi_solver(data):
     for i in range(numClients):
         for j in range(numFacilities):
             y[(i,j)] = m.addVar(lb=0, vtype=GRB.CONTINUOUS, name="t%d,%d" % (i,j))
-            d[(i,j)] = distance(clients[i], facilities[j])
+            d[(i,j)] = graph_dis(G,i,j,numFacilities)
 
     m.update()
 
@@ -86,6 +94,8 @@ def visualize(data, x, y, vis=True):
     charge = np.array(data['charge'])
     alpha = data['alpha']
 
+    fig=plt.figure(figsize=(16, 8))
+    fig.add_subplot(1, 2, 1)
     plt.scatter(clients[:,0],clients[:,1])
     color = np.vstack([1/(max(charge)/charge)] + \
                       [[0]*len(charge)] + [[0]*len(charge)]).T
@@ -96,9 +106,23 @@ def visualize(data, x, y, vis=True):
                  c=[y[i]/len(facilities),
                     y[i]/len(facilities),
                     y[i]/len(facilities)])
+    
+    clients = data['clients']
+    facilities = data['facilities']
+
+    numFacilities = len(facilities)
+    numClients = len(clients)
+
+
+    G = load_adj(data['graph_dict'], numFacilities + numClients)
+    nodes = np.concatenate((facilities,clients),axis = 0)
+
+    fig.add_subplot(1, 2, 2)
+    vis_graph(nodes,G,numFacilities,numClients)
+
     if vis:
         plt.show()
-    return plt.gcf()
+    return fig
     
 
 if __name__ == '__main__':
