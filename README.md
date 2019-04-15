@@ -24,6 +24,8 @@ Most importantly, you need a liscense from gurobi. You can get one from [here](h
 
 on the root folder which has `setup.py`.
 
+## Examples
+
 ### Graph generation
 
 An example of graph
