@@ -57,7 +57,7 @@ def generate_data(cfg):
 
         _,_,gen_graph = graph_generation(np.array(facilities),np.array(clients))
         graph_dict = save_graph(gen_graph, f_num, c_num)
-        # # visulize the graph
+        # Uncomment to visulize the graph
         # nodes = np.concatenate((np.array(facilities),np.array(clients)),axis = 0)
         # vis_graph(nodes,gen_graph,f_num,c_num)
         # plt.show()
@@ -81,24 +81,41 @@ def savedata(data, cfg, name=None,data_dir = 'dataset/synthetic'):
     Data will be saved in json format
     save the configuration and data both
     in the json file.
+    
+    Args: 
+        data: data generated with optimal solutions
+        cfg: configuration loaded from file
+    Return:
+        file_name: absolute path for the data file
     """
-    s_data = {'cfg':cfg, 'data':{}}
+    s_data = {'cfg':cfg, 'data':data}
     if not name:
         now = datetime.datetime.now()
         name = 'dataset-%02d-%02d-%2d-%2d-%2d.json' % (now.day, now.month, now.hour, now.minute, now.second)
+
     # # remove existing files
     # if os.path.exists(os.path.join(data_dir,name)):
     #     os.remove(os.path.join(data_dir,name))
 
-    with open(os.path.join(data_dir,name), 'w') as fp:
-        for s in range(len(data)):
-            fp.write(json.dumps(data[s], indent=2))
-        # raise NotImplementedError
+    file_name = os.path.join(data_dir,name)
+    with open(file_name, 'w') as fp:
+        fp.write(json.dumps(s_data, indent=3))
+    return file_name
 
-# def convert_graph(data):
-#     """ Convert data to graph structure
-#     """
-#     raise NotImplementedError
+def loaddata(file_name):
+    """
+    Data will be loaded from json format
+    
+    Args:
+        file_name: absolute path for the data file
+    Return:
+        cfg: configuration of the generated data
+        data: data generated with ground truth
+    """
+    assert(os.path.isfile(file_name))
+    s_data = json.load(open(file_name, 'r'))
+    return s_data['cfg'], s_data['data']
+
 
 
 def main():
@@ -111,7 +128,13 @@ def main():
     #     fig.show()
     #     input('any key to continue')
     #     fig.clear()
-    savedata(data, cfg)
+    file_name = savedata(data, cfg)
+    _,data_re = loaddata(file_name)
+    # for i in data_re:
+    #     fig = visualize(i, i['x'], i['y'], False)
+    #     fig.show()
+    #     input('any key to continue')
+    #     fig.clear()
 
 
 
