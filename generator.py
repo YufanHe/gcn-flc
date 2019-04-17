@@ -123,13 +123,15 @@ def main():
     args = parser.parse_args()
     cfg = load_config(args.config)['data']
     data = generate_data(cfg)
+    # uncomment to visualize your graph
     # for i in data:
     #     fig = visualize(i, i['x'], i['y'], False)
     #     fig.show()
     #     input('any key to continue')
     #     fig.clear()
     file_name = savedata(data, cfg)
-    _,data_re = loaddata(file_name)
+    # Uncomment to double check your result
+    #_,data_re = loaddata(file_name)
     # for i in data_re:
     #     fig = visualize(i, i['x'], i['y'], False)
     #     fig.show()
