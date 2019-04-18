@@ -1,6 +1,9 @@
 {
     "network":{
-        "input_dim":200
+        "input_dim":200,
+        "input_feature":1,
+        "hidden_layer":10
+
     },
     "data":{
         "total_nodes":200,

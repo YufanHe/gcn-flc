@@ -1,3 +1,4 @@
 *.log
 utils/__pycache__/*
 dataset/synthetic/*
+.DS_Store
