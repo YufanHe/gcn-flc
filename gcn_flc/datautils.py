@@ -7,12 +7,29 @@ import numpy as np
 import pdb
 
 def distance(a,b):
+    '''
+    Euclidean distance between any two point
+    Args: 
+        a,b numpy array with same dim (both 1*n vector)
+    Return:
+        distance between a and b
+    '''
     dx = a[0] - b[0]
     dy = a[1] - b[1]
     return math.sqrt(dx*dx + dy*dy)
 
-def graph_dis(G,c_indx,f_inx,numFacilities):
-    distance=nx.dijkstra_path_length(G, source = f_inx, target = c_indx + numFacilities)
+def graph_dis(G,c_indx,f_indx,numFacilities):
+    '''
+    Graph distance between any two point
+    Args: 
+        G: graph we generated
+        c_indx: the index of client
+        f_indx: the index of facility
+        numFacilities: the number of all the facilities
+    Return:
+        distance between a and b with dijkstra algorithm
+    '''
+    distance=nx.dijkstra_path_length(G, source = f_indx, target = c_indx + numFacilities)
     return distance
 
 def gurobi_solver(data):
@@ -126,6 +143,9 @@ def visualize(data, x, y, vis=True):
     
 
 if __name__ == '__main__':
+    '''
+        test code for developing
+    '''
     data = {
         'clients': [[0, 1.5],[2.5, 1.2]],
         'facilities': [[0,0],[0,1],[0,1],

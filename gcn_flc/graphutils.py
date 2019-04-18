@@ -7,7 +7,7 @@ from scipy.sparse import coo_matrix
 
 def euc_dis(a,b):
     '''
-    Generate random samples
+    Euclidean distance between any two point
     Args: 
         a,b numpy array with same dim (both 1*n vector)
     Return:
@@ -17,6 +17,18 @@ def euc_dis(a,b):
     dy = a[1] - b[1]
     return math.sqrt(dx*dx + dy*dy)
 def graph_generation(facilities,clients,max_dis = 18,reduce_prob = 0.4):
+    '''
+    Given position of the facilities and clients,
+    generate a graph that connects all the nodes but
+    not fully connected
+    Args:
+        facilities: position array of facilities n*2
+        clinets:   position array of clients
+    Return:
+        G: fully connected graph
+        T: minimum spanning tree of the graph
+        TG: Minimum spanning tree with some random edges
+    '''
 
     fac_num = facilities.shape[0]
     cli_num = clients.shape[0]
@@ -24,6 +36,7 @@ def graph_generation(facilities,clients,max_dis = 18,reduce_prob = 0.4):
     #combine nodes
     nodes = np.concatenate((facilities,clients),axis = 0)
 
+    #Initialize the graph
     G=nx.Graph()
     N = fac_num + cli_num
     # add nodes
@@ -34,9 +47,6 @@ def graph_generation(facilities,clients,max_dis = 18,reduce_prob = 0.4):
         for j in range(i+1,N):
             dis = euc_dis(nodes[i],nodes[j])
             G.add_edge(i, j, weight=dis)
-    
-    
-    
     
     # Minimum spanning tree
     T=nx.minimum_spanning_tree(G)
@@ -51,6 +61,17 @@ def graph_generation(facilities,clients,max_dis = 18,reduce_prob = 0.4):
     
     return G,T,TG
 def save_graph(G,fac_num,cli_num):
+    '''
+    Save a graph to an adjacent matrix
+    store the sparse matrix as coo format and 
+    put it in a dict
+    Args:
+        G: graph in networkx
+        fac_num: number of facilities
+        cli_num: number of clients
+    Return:
+        g_dict: a dict that stores the sparse matrix
+    '''
 
     # Convert to adjacent matrix
     A = nx.adjacency_matrix(G)
@@ -63,7 +84,14 @@ def save_graph(G,fac_num,cli_num):
     return g_dict
 
 def load_adj(g_dict,N):
-
+    '''
+    load graph from adjacent matrix
+    Args:
+        g_dict: a dict that stores the sparse matrix
+        N: the number of nodes
+    Return:
+        G: graph represented by Networkx
+    '''
     row  = np.array(g_dict['row'])
     col  = np.array(g_dict['col'])
     data = np.array(g_dict['data'])
@@ -74,6 +102,14 @@ def load_adj(g_dict,N):
 
 
 def vis_graph(nodes,graph,fac_num,cli_num):
+    '''
+    visualize the graph
+    Args:
+        nodes: positions of each node in order to align layout with the real position
+        graph: the graph you want to visulize
+        fac_num: number of facilities to seperate them from others
+        cli_num: number of clinets
+    '''
 
     N = nodes.shape[0]
     #color_map
@@ -90,6 +126,10 @@ def vis_graph(nodes,graph,fac_num,cli_num):
 
 
 def test():
+    '''
+        Some test code for developing
+        Not needed for the generator code
+    '''
     fac_num = 8
     cli_num = 92
     N = fac_num + cli_num
