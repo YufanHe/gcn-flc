@@ -1,5 +1,0 @@
-./data/data_1.json
-./data/data_2.json
-./data/data_3.json
-./data/data_4.json
-./data/data_5.json

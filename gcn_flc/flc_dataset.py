@@ -12,38 +12,46 @@ from scipy.sparse import coo_matrix
 
 class FlcDataset(data.Dataset):
 
-	def __init__(self, dataset_path, N, split='train'):
+	def __init__(self, dataset_path, split='train'):
 		self.dataset_path = dataset_path
-		self.N = N
 		self.split = split
 
-		self.data = []
-
-		with open(self.dataset_path, 'r') as f:
-			for line in f:
-				self.data.append(line.rstrip('\n'))
+		self.cfg, self.data = loaddata(self.dataset_path)
+		self.total_nodes = self.cfg['total_nodes']
 
 	def __len__(self):
 		return len(self.data)
 
 	def __getitem__(self, index):
 		
-		data_dic = load_data(self.data[index])
+		data = self.data[index]
 
-		adj_matrix = load_adj(data_dic['graph_dict'], self.N)
+		graph_dict = data['graph_dict']
 
-		label = np.zeros(self.N) 
-		label[:len(data_dic['x'])] = np.array(data_dic['x'])
+		adj_matrix = load_adj(graph_dict, self.total_nodes)
+		DAD_matrix = normalizeA(adj_matrix, self.total_nodes)
 
-		charge_weight = np.zeros(self.N)
-		charge_weight[:len(data_dic['charge'])] = np.array(data_dic['charge'])
-		
-		return adj_matrix, label, charge_weight, self.data[index]
+		label = np.zeros(self.total_nodes) 
+		label[:len(data['x'])] = np.array(data['x'])
 
-def load_data(data_path):
-	assert(os.path.exists(data_path))
-	data = json.load(open(data_path, 'r'))
-	return data
+		charge_weight = np.zeros(self.total_nodes)
+		charge_weight[:len(data['charge'])] = np.array(data['charge'])
+
+		return DAD_matrix, label, charge_weight, index
+
+def loaddata(file_name):
+    """
+    Data will be loaded from json format
+    
+    Args:
+        file_name: absolute path for the data file
+    Return:
+        cfg: configuration of the generated data
+        data: data generated with ground truth
+    """
+    assert(os.path.isfile(file_name))
+    s_data = json.load(open(file_name, 'r'))
+    return s_data['cfg'], s_data['data']
 
 def load_adj(g_dict, N):
 
@@ -53,3 +61,14 @@ def load_adj(g_dict, N):
 	A = coo_matrix((data, (row, col)), shape=(N, N)).toarray()
 
 	return A
+
+def normalizeA(A, N):
+
+	A_I = A + np.identity(N)
+	D = np.diagflat(np.sum(A_I, axis=0))
+	D_inv = np.linalg.inv(D)
+	D_inv_2 = np.sqrt(D_inv)
+	DAD = np.matmul(D_inv_2, np.matmul(A_I, D_inv_2))
+
+	#DAD[DAD < 1e-6] = 1000
+	return DAD

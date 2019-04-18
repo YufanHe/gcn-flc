@@ -7,16 +7,22 @@ from torch.nn.parameter import Parameter
 import torch.nn.functional as F
 
 class GCN(nn.Module):
-	def __init__(self, nfeat, nhid, nclass=1):
+	def __init__(self, cfg, nclass=1):
 		super().__init__()
 
-		self.gc1 = GraphConvolution(nfeat, nhid)
-		self.gc2 = GraphConvolution(nhid, nclass)
+		self.gc1 = GraphConvolution(cfg['input_feature'], cfg['hidden_layer1'])
+		self.gc2 = GraphConvolution(cfg['hidden_layer1'], cfg['hidden_layer2'])
+		self.gc3 = GraphConvolution(cfg['hidden_layer2'], cfg['hidden_layer3'])
+		self.gc4 = GraphConvolution(cfg['hidden_layer3'], cfg['hidden_layer4'])
+		self.gc5 = GraphConvolution(cfg['hidden_layer4'], nclass)
 
 	def forward(self, x, adj):
 		x = F.relu(self.gc1(x, adj))
-		x = self.gc2(x, adj)
-		return F.sigmoid(x)
+		x = F.relu(self.gc2(x, adj))
+		x = F.relu(self.gc3(x, adj))
+		x = F.relu(self.gc4(x, adj))
+		x = self.gc5(x, adj)
+		return torch.sigmoid(x)
 
 
 class GraphConvolution(nn.Module):
