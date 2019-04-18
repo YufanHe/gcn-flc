@@ -81,7 +81,8 @@ def train(cfg, model, train_loader, device, optimizer, loss_list):
 
 		output = model(input, A)
 		
-		loss = F.binary_cross_entropy(output, label, weight=charge_weight)
+		#loss = F.binary_cross_entropy(output, label, weight=charge_weight)
+		loss = F.binary_cross_entropy(output, label)
 
 		loss.backward()
 		optimizer.step()

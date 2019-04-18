@@ -34,7 +34,8 @@ class FlcDataset(data.Dataset):
 		label = np.zeros(self.total_nodes) 
 		label[:len(data['x'])] = np.array(data['x'])
 
-		charge_weight = np.zeros(self.total_nodes)
+		#charge_weight = np.zeros(self.total_nodes)
+		charge_weight = np.full(self.total_nodes, 1000)
 		charge_weight[:len(data['charge'])] = np.array(data['charge'])
 
 		return DAD_matrix, label, charge_weight, index
