@@ -47,35 +47,33 @@ def build_data_loader():
 	Args: 
 	Return: dataloader for training, validation 
 	"""
-	dataset_path = './dataset/synthetic/dataset_100.json'
+	train_dataset_path = './dataset/synthetic/dataset_100.json'
+	val_dataset_path = './dataset/synthetic/dataset_10.json'
 
-	train_dataset = FlcDataset(dataset_path, split='train')
+	train_dataset = FlcDataset(train_dataset_path, split='train')
 	train_loader = DataLoader(
 		train_dataset, batch_size=args.batch_size, shuffle= True,
 		num_workers=args.workers, pin_memory=False)
 
-	val_dataset = FlcDataset(dataset_path, split='val')
+	val_dataset = FlcDataset(val_dataset_path, split='val')
 	val_loader = DataLoader(
-	    val_dataset, batch_size=1, shuffle=False,
-	    num_workers=0, pin_memory=False)   
+		val_dataset, batch_size=1, shuffle=False,
+		num_workers=0, pin_memory=False)   
 	# test_loader = DataLoader(
 	#     test_loader, batch_size=1, shuffle=False,
 	#     num_workers=0, pin_memory=False)     
 	return train_loader, val_loader
-def train(cfg, model, train_loader, device, optimizer, loss_list):
+def train(cfg, model, train_loader, device, optimizer, epoch, train_loss_list):
 
 	model.train()
 
 	for batch_count, (A, label, charge_weight, index) in enumerate(train_loader):
 
 		input = torch.ones([args.batch_size, cfg['data']['total_nodes'],
-				 			cfg['network']['input_feature']], dtype=torch.float64)
+							cfg['network']['input_feature']], dtype=torch.float64)
 		#cuda
 		input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
 		label, charge_weight = label.to(device, dtype=torch.float), charge_weight.to(device, dtype=torch.float)
-		
-		label.unsqueeze_(-1)
-		charge_weight.unsqueeze_(-1)
 
 		optimizer.zero_grad()
 
@@ -87,11 +85,38 @@ def train(cfg, model, train_loader, device, optimizer, loss_list):
 		loss.backward()
 		optimizer.step()
 
-		loss_list.append(loss.item())
+		train_loss_list.append(loss.item())
+
+		if batch_count%10 == 0:
+			print('Epoch [%d/%d] Loss: %.4f' %(epoch, args.epochs, loss.item()))
 		
 
-def validate():
-	pass
+def validate(cfg, model, val_loader, device, val_loss_list):
+	
+	model.eval()
+
+	val_loss = 0
+
+	with torch.no_grad():
+
+		for batch_count, (A, label, charge_weight, index) in enumerate(val_loader):
+
+			input = torch.ones([1, cfg['data']['total_nodes'],
+							cfg['network']['input_feature']], dtype=torch.float64)
+			#cuda
+			input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
+			label, charge_weight = label.to(device, dtype=torch.float), charge_weight.to(device, dtype=torch.float)
+
+			output = model(input, A)
+
+			#loss = F.binary_cross_entropy(output, label, weight=charge_weight)
+			loss = F.binary_cross_entropy(output, label)
+
+			val_loss += loss.item()
+		avg_loss = val_loss / len(val_loader.dataset)
+		val_loss_list.append(avg_loss)
+
+		print('##Validate loss : %.4f' %(avg_loss))
 
 def main():
 	global args
@@ -108,13 +133,18 @@ def main():
 
 		optimizer = optim.Adam(model.parameters(), args.learning_rate, (0.9, 0.999), eps=1e-08)
 
-		loss_list = []
+		train_loss_list = []
+		val_loss_list = []
 
 		for epoch in range(args.epochs):
 
-			train(cfg, model, train_loader, device, optimizer, loss_list)
+			train(cfg, model, train_loader, device, optimizer, epoch, train_loss_list)
+			validate(cfg, model, val_loader, device, val_loss_list)
 
-		plt.plot(loss_list)
+		plt.figure(1)
+		plt.plot(train_loss_list)
+		plt.figure(2)
+		plt.plot(val_loss_list)
 		plt.show()
 
 	elif args.mode == 'predict':
