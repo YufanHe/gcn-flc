@@ -10,11 +10,11 @@ class GCN(nn.Module):
 	def __init__(self, cfg, nclass=1):
 		super().__init__()
 
-		self.gc1 = GraphConvolution(cfg['input_feature'], cfg['hidden_layer1'])
-		self.gc2 = GraphConvolution(cfg['hidden_layer1'], cfg['hidden_layer2'])
-		self.gc3 = GraphConvolution(cfg['hidden_layer2'], cfg['hidden_layer3'])
-		self.gc4 = GraphConvolution(cfg['hidden_layer3'], cfg['hidden_layer4'])
-		self.gc5 = GraphConvolution(cfg['hidden_layer4'], nclass)
+		self.gc1 = GraphConvolution(cfg['data']['total_nodes'], cfg['network']['input_feature'], cfg['network']['hidden_layer1'])
+		self.gc2 = GraphConvolution(cfg['data']['total_nodes'], cfg['network']['hidden_layer1'], cfg['network']['hidden_layer2'])
+		self.gc3 = GraphConvolution(cfg['data']['total_nodes'], cfg['network']['hidden_layer2'], cfg['network']['hidden_layer3'])
+		self.gc4 = GraphConvolution(cfg['data']['total_nodes'], cfg['network']['hidden_layer3'], cfg['network']['hidden_layer4'])
+		self.gc5 = GraphConvolution(cfg['data']['total_nodes'], cfg['network']['hidden_layer4'], nclass)
 
 	def forward(self, x, adj):
 		x = F.relu(self.gc1(x, adj))
@@ -27,13 +27,13 @@ class GCN(nn.Module):
 
 class GraphConvolution(nn.Module):
 
-	def __init__(self, in_features, out_features, bias=True):
+	def __init__(self, total_node, in_features, out_features, bias=True):
 		super().__init__()
 		self.in_features = in_features
 		self.out_features = out_features
 		self.weight = Parameter(torch.FloatTensor(in_features, out_features))
 		if bias:
-			self.bias = Parameter(torch.FloatTensor(in_features, out_features))
+			self.bias = Parameter(torch.FloatTensor(total_node, out_features))
 		else:
 			self.register_parameter('bias', None)
 		self.reset_parameters()
@@ -48,6 +48,6 @@ class GraphConvolution(nn.Module):
 		support = torch.matmul(input, self.weight)
 		output = torch.matmul(adj, support)
 		if self.bias is not None:
-			return output + torch.matmul(input, self.bias)
+			return output + self.bias
 		else:
 			return output

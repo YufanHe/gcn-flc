@@ -23,7 +23,7 @@ from models.gcn import GCN
 parser = argparse.ArgumentParser(description='GCN train and validate')
 parser.add_argument('--mode', default='train', choices=['train', 'predict'], 
 					help='operation mode: train or predict (default: train)')
-parser.add_argument('--epochs', default=50, type=int, metavar='N',
+parser.add_argument('--epochs', default=500, type=int, metavar='N',
 					help='number of total epochs to run')
 parser.add_argument('--learning_rate', type=float, default=0.005, 
 					help='learning rate (default: 0.005)')
@@ -47,8 +47,8 @@ def build_data_loader():
 	Args: 
 	Return: dataloader for training, validation 
 	"""
-	train_dataset_path = './dataset/synthetic/dataset_100.json'
-	val_dataset_path = './dataset/synthetic/dataset_10.json'
+	train_dataset_path = './dataset/synthetic/dataset_500.json'
+	val_dataset_path = './dataset/synthetic/dataset_100.json'
 
 	train_dataset = FlcDataset(train_dataset_path, split='train')
 	train_loader = DataLoader(
@@ -67,10 +67,12 @@ def train(cfg, model, train_loader, device, optimizer, epoch, train_loss_list):
 
 	model.train()
 
-	for batch_count, (A, label, charge_weight, index) in enumerate(train_loader):
+	for batch_count, (A, label, charge_weight, f_num, index) in enumerate(train_loader):
 
 		input = torch.ones([args.batch_size, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
+
+		#input = charge_weight
 		#cuda
 		input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
 		label, charge_weight = label.to(device, dtype=torch.float), charge_weight.to(device, dtype=torch.float)
@@ -99,10 +101,12 @@ def validate(cfg, model, val_loader, device, val_loss_list):
 
 	with torch.no_grad():
 
-		for batch_count, (A, label, charge_weight, index) in enumerate(val_loader):
+		for batch_count, (A, label, charge_weight, f_num, index) in enumerate(val_loader):
 
 			input = torch.ones([1, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
+			#input = charge_weight
+
 			#cuda
 			input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
 			label, charge_weight = label.to(device, dtype=torch.float), charge_weight.to(device, dtype=torch.float)
@@ -113,10 +117,33 @@ def validate(cfg, model, val_loader, device, val_loss_list):
 			loss = F.binary_cross_entropy(output, label)
 
 			val_loss += loss.item()
+
 		avg_loss = val_loss / len(val_loader.dataset)
 		val_loss_list.append(avg_loss)
 
 		print('##Validate loss : %.4f' %(avg_loss))
+
+def test(cfg, model, val_loader, device):
+
+	model.eval()
+
+	val_loss = 0
+
+	with torch.no_grad():
+
+		for batch_count, (A, label, charge_weight, f_num, index) in enumerate(val_loader):
+
+			input = torch.ones([1, cfg['data']['total_nodes'],
+							cfg['network']['input_feature']], dtype=torch.float64)
+
+			#cuda
+			input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
+			label, charge_weight = label.to(device, dtype=torch.float), charge_weight.to(device, dtype=torch.float)
+
+			output = model(input, A)
+
+			print(output[:, :f_num+2, :])
+			print(label[:, :f_num +2, :])
 
 def main():
 	global args
@@ -129,24 +156,29 @@ def main():
 
 		train_loader, val_loader = build_data_loader()
 
-		model = GCN(cfg['network']).to(device)
+		model = GCN(cfg).to(device)
 
 		optimizer = optim.Adam(model.parameters(), args.learning_rate, (0.9, 0.999), eps=1e-08)
+
+		scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
 
 		train_loss_list = []
 		val_loss_list = []
 
 		for epoch in range(args.epochs):
+			scheduler.step(epoch)
 
 			train(cfg, model, train_loader, device, optimizer, epoch, train_loss_list)
 			validate(cfg, model, val_loader, device, val_loss_list)
 
+		test(cfg, model, val_loader, device)
+		
 		plt.figure(1)
 		plt.plot(train_loss_list)
 		plt.figure(2)
 		plt.plot(val_loss_list)
 		plt.show()
-
+		
 	elif args.mode == 'predict':
 		pass
 

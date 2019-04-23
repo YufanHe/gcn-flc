@@ -40,7 +40,7 @@ class FlcDataset(data.Dataset):
 		charge_weight[:len(data['charge'])] = np.array(data['charge'])
 		charge_weight = charge_weight[:, np.newaxis]
 
-		return DAD_matrix, label, charge_weight, index
+		return DAD_matrix, label, charge_weight, len(data['x']), index
 
 def loaddata(file_name):
     """
@@ -66,8 +66,11 @@ def load_adj(g_dict, N):
 	return A
 
 def normalizeA(A, N):
-
-	A_I = A + np.identity(N)
+	B = np.reciprocal(A)
+	B[B == np.inf] = 0
+	A_I = B + np.identity(N)
+	#A_I_map = A_I == 0
+	#A_I[A_I_map] = 1000
 	D = np.diagflat(np.sum(A_I, axis=0))
 	D_inv = np.linalg.inv(D)
 	D_inv_2 = np.sqrt(D_inv)
