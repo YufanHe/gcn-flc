@@ -60,7 +60,8 @@ def gurobi_solver(data):
     G = load_adj(data['graph_dict'], numFacilities + numClients)
 
     m = Model()
-
+    #m.setParam( 'TuneOutput', 0 )
+    m.setParam( 'OutputFlag', False )
     # Add variables
     x = {}
     y = {}
@@ -88,6 +89,7 @@ def gurobi_solver(data):
     m.setObjective( quicksum(charge[j]*x[j] + quicksum(alpha*d[(i,j)]*y[(i,j)]
                     for i in range(numClients)) for j in range(numFacilities)) )
 
+    
     m.optimize()
     # return a stardard result list
     x_result = []
