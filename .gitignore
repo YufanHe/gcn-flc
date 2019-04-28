@@ -4,3 +4,4 @@ dataset/synthetic/*
 gcn_flc/__pycache__/*
 gcn_flc/__pycache__/graphutils.cpython-35.pyc
 gcn_flc/__pycache__/datautils.cpython-35.pyc
+tb_log/*
