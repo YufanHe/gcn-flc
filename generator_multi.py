@@ -44,7 +44,7 @@ def data_groundtruth_process(cfg,data,lock):
         d: [N,M] distance array, d[i,j] is the distance from i to j
     """
 
-    np.random.seed(cfg['random_seed'])
+    np.random.seed()
     f_num = np.random.randint(cfg['facility_num'][0],
                                   cfg['facility_num'][1])
     facilities = list(map(list, 
@@ -75,6 +75,7 @@ def data_groundtruth_process(cfg,data,lock):
     data_node['d'] = d.tolist()
     lock.acquire()
     data.append(data_node)
+    print('Num of clients: %d' % len(clients))
     print('Generating the %d data'%(len(data)))
     lock.release()
 
@@ -83,7 +84,8 @@ def generate_data(cfg):
     #data = []
     data=multiprocessing.Manager().list()   
     lock= multiprocessing.Manager().Lock()  
-    p = Pool(3)
+    p = Pool(cfg['parallel_core'])
+    #np.random.seed(cfg['random_seed'])
     for s in range(cfg['sample_num']):
         #data_groundtruth(cfg,data)  
         p.apply_async(data_groundtruth_process, args=(cfg,data,lock)) 
@@ -103,10 +105,10 @@ def savedata(data, cfg, name=None,data_dir = 'dataset/synthetic'):
     Return:
         file_name: absolute path for the data file
     """
-    s_data = {'cfg':cfg, 'data':data}
+    s_data = {'cfg':cfg, 'data':list(data)}
     if not name:
         now = datetime.datetime.now()
-        name = 'dataset-%02d-%02d-%2d-%2d-%2d.json' % (now.day, now.month, now.hour, now.minute, now.second)
+        name = 'dataset-%02d-%02d-%02d-%02d-%02d.json' % ( now.month, now.day, now.hour, now.minute, now.second)
 
 
     file_name = os.path.join(data_dir,name)
