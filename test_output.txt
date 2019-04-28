@@ -1,0 +1,22 @@
+Load data...
+Got 200 test examples
+Start predicting...
+----------------------------------------------------------------
+        Layer (type)               Output Shape         Param #
+================================================================
+  GraphConvolution-1              [-1, 200, 64]          12,864
+  GraphConvolution-2             [-1, 200, 128]          33,792
+  GraphConvolution-3              [-1, 200, 64]          20,992
+  GraphConvolution-4              [-1, 200, 32]           8,448
+  GraphConvolution-5               [-1, 200, 1]             232
+================================================================
+Total params: 76,328
+Trainable params: 76,328
+Non-trainable params: 0
+----------------------------------------------------------------
+Input size (MB): 30.52
+Forward/backward pass size (MB): 0.44
+Params size (MB): 0.29
+Estimated Total Size (MB): 31.25
+----------------------------------------------------------------
+##Test loss : 0.000519

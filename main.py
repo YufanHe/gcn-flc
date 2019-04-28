@@ -6,6 +6,7 @@ import json
 
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
+from torchsummary import summary
 
 import torch
 import torch.nn as nn
@@ -24,7 +25,7 @@ parser.add_argument('--mode', default='train', choices=['train', 'predict'],
 					help='operation mode: train or predict (default: train)')
 parser.add_argument('--epochs', default=500, type=int, metavar='N',
 					help='number of total epochs to run')
-parser.add_argument('--learning_rate', type=float, default=0.01, 
+parser.add_argument('--learning_rate', type=float, default=0.005, 
 					help='learning rate (default: 0.005)')
 parser.add_argument('--config', dest='config', default='config.json',
 					help='hyperparameter of faster-rcnn in json format')
@@ -32,9 +33,9 @@ parser.add_argument('--batch_size', type=int, default=4,
 					help='batch size (default: 4)')
 parser.add_argument('--workers', type=int, default=4, 
 					help='workers (default: 4)')
-parser.add_argument('--no_cuda', action='store_true', default=True, 
+parser.add_argument('--no_cuda', action='store_true', default=False, 
 					help='disables CUDA training')
-parser.add_argument('--resume_file', type=str, default=None, 
+parser.add_argument('--resume_file', type=str, default='/home/kuowei/Desktop/gcn-flc/checkpoint/gcn_wc1_small_bs_4_lr_5e-3_model.pkl', 
 					help='the checkpoint file to resume from')
 
 tb_log_dir = './tb_log/'
@@ -52,8 +53,8 @@ def build_data_loader(mode):
 	Return: dataloader for training, validation 
 	"""
 	if mode == 'train':
-		train_dataset_path = ['./dataset/synthetic/dataset_200_1.json', './dataset/synthetic/dataset_200_2.json', './dataset/synthetic/dataset_200_3.json']
-		val_dataset_path = ['./dataset/synthetic/dataset_200_4.json', './dataset/synthetic/dataset_200_5.json']
+		train_dataset_path = ['./dataset/synthetic/dataset_500.json']#['./dataset/synthetic/dataset_200_1.json', './dataset/synthetic/dataset_200_2.json', './dataset/synthetic/dataset_200_3.json']
+		val_dataset_path = ['./dataset/synthetic/dataset_100.json']#['./dataset/synthetic/dataset_200_4.json', './dataset/synthetic/dataset_200_5.json']
 
 		train_dataset = FlcDataset(train_dataset_path, split='train')
 		train_loader = DataLoader(
@@ -71,7 +72,7 @@ def build_data_loader(mode):
 		return train_loader, val_loader
 
 	elif mode == 'predict':
-		test_dataset_path = ['./dataset/synthetic/dataset_10.json']
+		test_dataset_path = ['./dataset/synthetic/dataset_200_6.json']#['./dataset/synthetic/dataset_200_6.json']
 
 		test_dataset = FlcDataset(test_dataset_path, split='test')
 		test_loader = DataLoader(
@@ -156,7 +157,7 @@ def test(cfg, model, test_loader, device):
 	model.eval()
 
 	test_loss = 0
-	hard_threshold = 1e-4
+	hard_threshold = 0.8
 
 	test_data = test_loader.dataset.data
 
@@ -179,13 +180,13 @@ def test(cfg, model, test_loader, device):
 
 			test_loss += loss.item()
 
-			test_data[index]['potential_f_node'] = torch.squeeze(output, 0).cpu().numpy()[:f_num, 0].tolist()
+			test_data[index]['possibility_x'] = list(zip(test_data[index]['x'], torch.squeeze(output, 0).cpu().numpy()[:f_num, 0].tolist()))
 
 			thresholed_output = torch.squeeze(output, 0).cpu().numpy()[:f_num, 0]
 			thresholed_output[thresholed_output > hard_threshold] = 1
 			thresholed_output[thresholed_output <= hard_threshold] = 0
 
-			test_data[index]['result_f_node'] = thresholed_output.tolist()
+			test_data[index]['predict_x'] = thresholed_output.tolist()
 
 		avg_test_loss = test_loss / len(test_loader.dataset)
 
@@ -207,7 +208,7 @@ def main():
 	
 	if args.mode == 'train':
 
-		exp_name = 'gcn' + '_wc1s_bs_4_lr_1e-2ttttttttttttttttttttt'
+		exp_name = 'gcn' + '_wc1_small_bs_4_lr_5e-3'
 
 		tb_writer = SummaryWriter(tb_log_dir + exp_name)
 
@@ -245,7 +246,9 @@ def main():
 
 		model = GCN(cfg).to(device)
 
-		#model.load_state_dict(torch.load(args.resume_file)['model_state'])
+		model.load_state_dict(torch.load(args.resume_file)['model_state'])
+
+		summary(model, [(200, 1), (200, 200)])
 
 		test(cfg, model, test_loader, device)
 
