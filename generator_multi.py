@@ -138,8 +138,13 @@ def main():
 
     file_name = savedata(data, cfg)
     
-
+def test(file_name):
+    cfg,data = loaddata(file_name)
+    print('Length of data:%d' %len(data))
+    for i in range(len(data)):
+        print(len(data[i]['clients']))
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    test('./dataset/synthetic/dataset-04-28-09-18-22.json')
