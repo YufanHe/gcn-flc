@@ -1,7 +1,7 @@
 {
     "network":{
         "input_dim":200,
-        "input_feature":32,
+        "input_feature":1,
         "hidden_layer1":64,
         "hidden_layer2":128,
         "hidden_layer3":64,

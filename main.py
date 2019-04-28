@@ -4,9 +4,8 @@ import os
 import numpy as np
 import json
 
-import matplotlib
-matplotlib.use("TkAgg")
-import matplotlib.pyplot as plt
+from tqdm import tqdm
+from tensorboardX import SummaryWriter
 
 import torch
 import torch.nn as nn
@@ -25,7 +24,7 @@ parser.add_argument('--mode', default='train', choices=['train', 'predict'],
 					help='operation mode: train or predict (default: train)')
 parser.add_argument('--epochs', default=500, type=int, metavar='N',
 					help='number of total epochs to run')
-parser.add_argument('--learning_rate', type=float, default=0.005, 
+parser.add_argument('--learning_rate', type=float, default=0.01, 
 					help='learning rate (default: 0.005)')
 parser.add_argument('--config', dest='config', default='config.json',
 					help='hyperparameter of faster-rcnn in json format')
@@ -33,8 +32,10 @@ parser.add_argument('--batch_size', type=int, default=4,
 					help='batch size (default: 4)')
 parser.add_argument('--workers', type=int, default=4, 
 					help='workers (default: 4)')
-parser.add_argument('--no_cuda', action='store_true', default=True, 
+parser.add_argument('--no_cuda', action='store_true', default=False, 
 					help='disables CUDA training')
+
+tb_log_dir = './tb_log/'
 
 def load_config(config_path):
 	assert(os.path.exists(config_path))
@@ -47,7 +48,7 @@ def build_data_loader():
 	Args: 
 	Return: dataloader for training, validation 
 	"""
-	train_dataset_path = './dataset/synthetic/dataset_500.json'
+	train_dataset_path = './dataset/synthetic/dataset-26-04-14-36-12.json'
 	val_dataset_path = './dataset/synthetic/dataset_100.json'
 
 	train_dataset = FlcDataset(train_dataset_path, split='train')
@@ -59,11 +60,14 @@ def build_data_loader():
 	val_loader = DataLoader(
 		val_dataset, batch_size=1, shuffle=False,
 		num_workers=0, pin_memory=False)   
+
+	print('Got {} training examples'.format(len(train_loader.dataset)))
+	print('Got {} validation examples'.format(len(val_loader.dataset)))
 	# test_loader = DataLoader(
 	#     test_loader, batch_size=1, shuffle=False,
 	#     num_workers=0, pin_memory=False)     
 	return train_loader, val_loader
-def train(cfg, model, train_loader, device, optimizer, epoch, train_loss_list):
+def train(cfg, model, train_loader, device, optimizer, epoch, tb_writer, total_tb_it):
 
 	model.train()
 
@@ -87,21 +91,27 @@ def train(cfg, model, train_loader, device, optimizer, epoch, train_loss_list):
 		loss.backward()
 		optimizer.step()
 
-		train_loss_list.append(loss.item())
+		per_loss = loss.item() / args.batch_size
+
+		tb_writer.add_scalar('train/overall_loss', per_loss, total_tb_it)
+		total_tb_it += 1
 
 		if batch_count%10 == 0:
-			print('Epoch [%d/%d] Loss: %.4f' %(epoch, args.epochs, loss.item()))
+			print('Epoch [%d/%d] Loss: %.6f' %(epoch, args.epochs, per_loss))
+
+	return total_tb_it
 		
 
-def validate(cfg, model, val_loader, device, val_loss_list):
+def validate(cfg, model, val_loader, device, tb_writer, total_tb_it):
 	
 	model.eval()
 
+	tb_loss = 0
 	val_loss = 0
 
 	with torch.no_grad():
 
-		for batch_count, (A, label, charge_weight, f_num, index) in enumerate(val_loader):
+		for batch_count, (A, label, charge_weight, f_num, index) in tqdm(enumerate(val_loader)):
 
 			input = torch.ones([1, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
@@ -116,12 +126,14 @@ def validate(cfg, model, val_loader, device, val_loss_list):
 			#loss = F.binary_cross_entropy(output, label, weight=charge_weight)
 			loss = F.binary_cross_entropy(output, label)
 
-			val_loss += loss.item()
+			tb_loss += loss.item()
 
-		avg_loss = val_loss / len(val_loader.dataset)
-		val_loss_list.append(avg_loss)
 
-		print('##Validate loss : %.4f' %(avg_loss))
+		avg_tb_loss = tb_loss / len(val_loader.dataset)
+
+		print('##Validate loss : %.6f' %(avg_tb_loss))
+
+		tb_writer.add_scalar('val/overall_loss', avg_tb_loss, total_tb_it)
 
 def test(cfg, model, val_loader, device):
 
@@ -154,7 +166,12 @@ def main():
 	
 	if args.mode == 'train':
 
+		exp_name = 'gcn' + '_wc1s_bs_4_lr_1e-2ttttttttttttttttttttt'
+
+		tb_writer = SummaryWriter(tb_log_dir + exp_name)
+
 		train_loader, val_loader = build_data_loader()
+		exit()
 
 		model = GCN(cfg).to(device)
 
@@ -162,22 +179,17 @@ def main():
 
 		scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
 
-		train_loss_list = []
-		val_loss_list = []
+		total_tb_it = 0
 
 		for epoch in range(args.epochs):
 			scheduler.step(epoch)
 
-			train(cfg, model, train_loader, device, optimizer, epoch, train_loss_list)
-			validate(cfg, model, val_loader, device, val_loss_list)
+			total_tb_it = train(cfg, model, train_loader, device, optimizer, epoch, tb_writer, total_tb_it)
+			validate(cfg, model, val_loader, device, tb_writer, total_tb_it)
 
-		test(cfg, model, val_loader, device)
+		#test(cfg, model, val_loader, device)
 		
-		plt.figure(1)
-		plt.plot(train_loss_list)
-		plt.figure(2)
-		plt.plot(val_loss_list)
-		plt.show()
+		tb_writer.close()
 		
 	elif args.mode == 'predict':
 		pass

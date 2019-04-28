@@ -35,8 +35,8 @@ class FlcDataset(data.Dataset):
 		label[:len(data['x'])] = np.array(data['x'])
 		label = label[:, np.newaxis]
 
-		#charge_weight = np.zeros(self.total_nodes)
-		charge_weight = np.full(self.total_nodes, 1000)
+		charge_weight = np.zeros(self.total_nodes)
+		#charge_weight = np.full(self.total_nodes, 1000)
 		charge_weight[:len(data['charge'])] = np.array(data['charge'])
 		charge_weight = charge_weight[:, np.newaxis]
 
