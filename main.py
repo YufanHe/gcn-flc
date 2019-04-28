@@ -32,41 +32,56 @@ parser.add_argument('--batch_size', type=int, default=4,
 					help='batch size (default: 4)')
 parser.add_argument('--workers', type=int, default=4, 
 					help='workers (default: 4)')
-parser.add_argument('--no_cuda', action='store_true', default=False, 
+parser.add_argument('--no_cuda', action='store_true', default=True, 
 					help='disables CUDA training')
+parser.add_argument('--resume_file', type=str, default=None, 
+					help='the checkpoint file to resume from')
 
 tb_log_dir = './tb_log/'
+checkpoint_dir = './checkpoint/'
 
 def load_config(config_path):
 	assert(os.path.exists(config_path))
 	cfg = json.load(open(config_path, 'r'))
 	return cfg
 
-def build_data_loader():
+def build_data_loader(mode):
 	"""
 	Build dataloader 
 	Args: 
 	Return: dataloader for training, validation 
 	"""
-	train_dataset_path = './dataset/synthetic/dataset-26-04-14-36-12.json'
-	val_dataset_path = './dataset/synthetic/dataset_100.json'
+	if mode == 'train':
+		train_dataset_path = ['./dataset/synthetic/dataset_200_1.json', './dataset/synthetic/dataset_200_2.json', './dataset/synthetic/dataset_200_3.json']
+		val_dataset_path = ['./dataset/synthetic/dataset_200_4.json', './dataset/synthetic/dataset_200_5.json']
 
-	train_dataset = FlcDataset(train_dataset_path, split='train')
-	train_loader = DataLoader(
-		train_dataset, batch_size=args.batch_size, shuffle= True,
-		num_workers=args.workers, pin_memory=False)
+		train_dataset = FlcDataset(train_dataset_path, split='train')
+		train_loader = DataLoader(
+			train_dataset, batch_size=args.batch_size, shuffle= True,
+			num_workers=args.workers, pin_memory=False)
 
-	val_dataset = FlcDataset(val_dataset_path, split='val')
-	val_loader = DataLoader(
-		val_dataset, batch_size=1, shuffle=False,
-		num_workers=0, pin_memory=False)   
+		val_dataset = FlcDataset(val_dataset_path, split='val')
+		val_loader = DataLoader(
+			val_dataset, batch_size=1, shuffle=False,
+			num_workers=0, pin_memory=False)   
 
-	print('Got {} training examples'.format(len(train_loader.dataset)))
-	print('Got {} validation examples'.format(len(val_loader.dataset)))
-	# test_loader = DataLoader(
-	#     test_loader, batch_size=1, shuffle=False,
-	#     num_workers=0, pin_memory=False)     
-	return train_loader, val_loader
+		print('Got {} training examples'.format(len(train_loader.dataset)))
+		print('Got {} validation examples'.format(len(val_loader.dataset)))
+
+		return train_loader, val_loader
+
+	elif mode == 'predict':
+		test_dataset_path = ['./dataset/synthetic/dataset_10.json']
+
+		test_dataset = FlcDataset(test_dataset_path, split='test')
+		test_loader = DataLoader(
+			test_dataset, batch_size=1, shuffle=False,
+			num_workers=0, pin_memory=False)  
+		print('Got {} test examples'.format(len(test_loader.dataset)))   
+
+		return test_loader
+
+	
 def train(cfg, model, train_loader, device, optimizer, epoch, tb_writer, total_tb_it):
 
 	model.train()
@@ -75,8 +90,8 @@ def train(cfg, model, train_loader, device, optimizer, epoch, tb_writer, total_t
 
 		input = torch.ones([args.batch_size, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
+		input = charge_weight
 
-		#input = charge_weight
 		#cuda
 		input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
 		label, charge_weight = label.to(device, dtype=torch.float), charge_weight.to(device, dtype=torch.float)
@@ -107,7 +122,6 @@ def validate(cfg, model, val_loader, device, tb_writer, total_tb_it):
 	model.eval()
 
 	tb_loss = 0
-	val_loss = 0
 
 	with torch.no_grad():
 
@@ -115,7 +129,7 @@ def validate(cfg, model, val_loader, device, tb_writer, total_tb_it):
 
 			input = torch.ones([1, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
-			#input = charge_weight
+			input = charge_weight
 
 			#cuda
 			input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
@@ -135,18 +149,24 @@ def validate(cfg, model, val_loader, device, tb_writer, total_tb_it):
 
 		tb_writer.add_scalar('val/overall_loss', avg_tb_loss, total_tb_it)
 
-def test(cfg, model, val_loader, device):
+	return avg_tb_loss
+
+def test(cfg, model, test_loader, device):
 
 	model.eval()
 
-	val_loss = 0
+	test_loss = 0
+	hard_threshold = 1e-4
+
+	test_data = test_loader.dataset.data
 
 	with torch.no_grad():
 
-		for batch_count, (A, label, charge_weight, f_num, index) in enumerate(val_loader):
+		for batch_count, (A, label, charge_weight, f_num, index) in enumerate(test_loader):
 
 			input = torch.ones([1, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
+			input = charge_weight
 
 			#cuda
 			input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
@@ -154,8 +174,29 @@ def test(cfg, model, val_loader, device):
 
 			output = model(input, A)
 
-			print(output[:, :f_num+2, :])
-			print(label[:, :f_num +2, :])
+			#loss = F.binary_cross_entropy(output, label, weight=charge_weight)
+			loss = F.binary_cross_entropy(output, label)
+
+			test_loss += loss.item()
+
+			test_data[index]['potential_f_node'] = torch.squeeze(output, 0).cpu().numpy()[:f_num, 0].tolist()
+
+			thresholed_output = torch.squeeze(output, 0).cpu().numpy()[:f_num, 0]
+			thresholed_output[thresholed_output > hard_threshold] = 1
+			thresholed_output[thresholed_output <= hard_threshold] = 0
+
+			test_data[index]['result_f_node'] = thresholed_output.tolist()
+
+		avg_test_loss = test_loss / len(test_loader.dataset)
+
+		print('##Test loss : %.6f' %(avg_test_loss))
+
+	s_data = {'cfg':test_loader.dataset.cfg, 'data':test_data, 'loss':avg_test_loss}
+	file_name = test_loader.dataset.dataset_path[0].split('.json')[0] + '_output.json'
+	with open(file_name, 'w') as fp:
+		fp.write(json.dumps(s_data, indent=3))
+
+
 
 def main():
 	global args
@@ -170,8 +211,7 @@ def main():
 
 		tb_writer = SummaryWriter(tb_log_dir + exp_name)
 
-		train_loader, val_loader = build_data_loader()
-		exit()
+		train_loader, val_loader = build_data_loader(args.mode)
 
 		model = GCN(cfg).to(device)
 
@@ -180,19 +220,34 @@ def main():
 		scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
 
 		total_tb_it = 0
+		best_val_loss = 1000
 
 		for epoch in range(args.epochs):
 			scheduler.step(epoch)
 
 			total_tb_it = train(cfg, model, train_loader, device, optimizer, epoch, tb_writer, total_tb_it)
-			validate(cfg, model, val_loader, device, tb_writer, total_tb_it)
+			val_loss = validate(cfg, model, val_loader, device, tb_writer, total_tb_it)
 
-		#test(cfg, model, val_loader, device)
+			if val_loss <= best_val_loss:
+				best_val_loss = val_loss
+				name = checkpoint_dir + exp_name +'_model.pkl'
+				state = {'epoch': epoch, 'model_state': model.state_dict(), 'optimizer_state': optimizer.state_dict()}
+				torch.save(state, name)
 		
 		tb_writer.close()
 		
 	elif args.mode == 'predict':
-		pass
+
+		print('Load data...')
+		test_loader = build_data_loader(args.mode)
+
+		print('Start predicting...')
+
+		model = GCN(cfg).to(device)
+
+		#model.load_state_dict(torch.load(args.resume_file)['model_state'])
+
+		test(cfg, model, test_loader, device)
 
 	else:
 		raise Exception("Unrecognized mode.")

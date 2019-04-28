@@ -13,10 +13,16 @@ from scipy.sparse import coo_matrix
 class FlcDataset(data.Dataset):
 
 	def __init__(self, dataset_path, split='train'):
+
 		self.dataset_path = dataset_path
 		self.split = split
 
-		self.cfg, self.data = loaddata(self.dataset_path)
+		self.data = []
+		for item in dataset_path:
+			cfg, data = loaddata(item)
+			self.data = self.data + data
+			self.cfg = cfg
+
 		self.total_nodes = self.cfg['total_nodes']
 
 	def __len__(self):
