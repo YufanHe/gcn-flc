@@ -33,7 +33,7 @@ parser.add_argument('--batch_size', type=int, default=4,
 					help='batch size (default: 4)')
 parser.add_argument('--workers', type=int, default=4, 
 					help='workers (default: 4)')
-parser.add_argument('--no_cuda', action='store_true', default=False, 
+parser.add_argument('--no_cuda', action='store_true', default=True, 
 					help='disables CUDA training')
 parser.add_argument('--resume_file', type=str, default='/home/kuowei/Desktop/gcn-flc/checkpoint/gcn_wc1_small_bs_4_lr_5e-4_model.pkl', 
 					help='the checkpoint file to resume from')
@@ -213,7 +213,7 @@ def main():
 	args = parser.parse_args()
 	cfg = load_config(args.config)
 
-	device = torch.device("cuda" if not args.no_cuda else "cpu")
+	device = torch.device("cuda:0" if not args.no_cuda else "cpu")
 	
 	if args.mode == 'train':
 

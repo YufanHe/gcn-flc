@@ -9,10 +9,13 @@ tb_log/*
 checkpoint/*
 .DS_Store
 
-pytorch-summary/*
+
 models/__pycache__/*
 .vscode/*
 temp/*
 dataset/*
 gcn_flc.egg-info/*
 .idea/*
+pytorch-summary/torchsummary.egg-info/*
+pytorch-summary/torchsummary/__pycache__/*
+

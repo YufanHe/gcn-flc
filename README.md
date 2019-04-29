@@ -36,3 +36,15 @@ An example of graph
 ![image](https://github.com/YufanHe/gcn-flc/blob/dev_pengfei/media/graph_ex.png)
 An example of solution
 ![image](https://github.com/YufanHe/gcn-flc/blob/dev_pengfei/media/solution_ex.png)
+
+## Training
+
+### Install requirement
+
+```shell
+conda install -c conda-forge tqdm tensorboardx protobuf
+conda install tensorflow
+conda install pytorch=0.4.1 cuda90 -c pytorch
+git clone https://github.com/sksq96/pytorch-summary
+rm -r pytorch-summary/.git
+```
