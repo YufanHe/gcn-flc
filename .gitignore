@@ -9,3 +9,6 @@ tb_log/*
 checkpoint/*
 .DS_Store
 
+pytorch-summary/*
+models/__pycache__/*
+.vscode/*
