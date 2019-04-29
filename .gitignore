@@ -12,3 +12,7 @@ checkpoint/*
 pytorch-summary/*
 models/__pycache__/*
 .vscode/*
+temp/*
+dataset/*
+gcn_flc.egg-info/*
+.idea/*

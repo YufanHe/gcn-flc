@@ -1,7 +1,7 @@
 # Pengfei Li,Yufan He @ 2018
 
 from distutils.core import setup
-setup(name = 'gcn-flc',
+setup(name = 'gcn_flc',
     version = '0.1',
-    packages = ['gcn-flc'],
+    packages = ['gcn_flc'],
 )

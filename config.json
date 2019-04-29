@@ -17,6 +17,7 @@
         "random_seed":12345,
         "sample_num":10,        
         "facility_cost":[100,200],
-        "travel_cost": 1
+        "travel_cost": 1,
+        "parallel_core":2
     }
 }

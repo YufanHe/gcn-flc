@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from gcn_flc.graphutils import load_adj, vis_graph
 import networkx as nx
 import numpy as np
-import pdb
+import json
 
 def distance(a,b):
     '''
@@ -60,7 +60,8 @@ def gurobi_solver(data):
     G = load_adj(data['graph_dict'], numFacilities + numClients)
 
     m = Model()
-
+    #m.setParam( 'TuneOutput', 0 )
+    m.setParam( 'OutputFlag', False )
     # Add variables
     x = {}
     y = {}
@@ -88,6 +89,7 @@ def gurobi_solver(data):
     m.setObjective( quicksum(charge[j]*x[j] + quicksum(alpha*d[(i,j)]*y[(i,j)]
                     for i in range(numClients)) for j in range(numFacilities)) )
 
+    
     m.optimize()
     # return a stardard result list
     x_result = []
@@ -141,6 +143,42 @@ def visualize(data, x, y, vis=True):
         plt.show()
     return fig
     
+def savedata(data, cfg, name=None,data_dir = 'dataset/synthetic'):
+    """
+    Data will be saved in json format
+    save the configuration and data both
+    in the json file.
+    
+    Args: 
+        data: data generated with optimal solutions
+        cfg: configuration loaded from file
+    Return:
+        file_name: absolute path for the data file
+    """
+    s_data = {'cfg':cfg, 'data':list(data)}
+    if not name:
+        now = datetime.datetime.now()
+        name = 'dataset-%02d-%02d-%02d-%02d-%02d.json' % ( now.month, now.day, now.hour, now.minute, now.second)
+
+
+    file_name = os.path.join(data_dir,name)
+    with open(file_name, 'w') as fp:
+        fp.write(json.dumps(s_data, indent=3))
+    return file_name
+
+def loaddata(file_name):
+    """
+    Data will be loaded from json format
+    
+    Args:
+        file_name: absolute path for the data file
+    Return:
+        cfg: configuration of the generated data
+        data: data generated with ground truth
+    """
+    assert(os.path.isfile(file_name))
+    s_data = json.load(open(file_name, 'r'))
+    return s_data['cfg'], s_data['data']
 
 if __name__ == '__main__':
     '''
