@@ -16,6 +16,7 @@ def euc_dis(a,b):
     dx = a[0] - b[0]
     dy = a[1] - b[1]
     return math.sqrt(dx*dx + dy*dy)
+
 def graph_generation(facilities,clients,max_dis = 18,reduce_prob = 0.4):
     '''
     Given position of the facilities and clients,
@@ -60,6 +61,7 @@ def graph_generation(facilities,clients,max_dis = 18,reduce_prob = 0.4):
                 TG.add_edge(i, j, weight=dis)
     
     return G,T,TG
+
 def save_graph(G,fac_num,cli_num):
     '''
     Save a graph to an adjacent matrix
