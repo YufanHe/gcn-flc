@@ -4,8 +4,10 @@
         "input_feature":1,
         "hidden_layer1":64,
         "hidden_layer2":128,
-        "hidden_layer3":64,
-        "hidden_layer4":32
+        "hidden_layer3":256,
+        "hidden_layer4":256,
+        "hidden_layer5":64,
+        "hidden_layer6":32
 
     },
     "data":{
