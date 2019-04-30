@@ -12,12 +12,12 @@
     },
     "data":{
         "total_nodes":200,
-        "facility_num":[5,30],
+        "facility_num":[70,100],
         "world_size":[100,100],
         "random_seed":12345,
-        "sample_num":10,        
-        "facility_cost":[100,200],
+        "sample_num":200,        
+        "facility_cost":[200,2000],
         "travel_cost": 1,
-        "parallel_core":2
+        "parallel_core":18
     }
 }

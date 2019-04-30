@@ -11,9 +11,10 @@ import multiprocessing
 from multiprocessing import Pool
 
 parser = argparse.ArgumentParser(description='data generator')
-parser.add_argument('--eval_file', dest='eval_file', default='./dataset/output/dataset-04-28-09-26-04_output.json', help='Result file from GCN to be evaluated')
+parser.add_argument('--eval_file', dest='eval_file', default='/data/pli32/trans/predict_5_1.json', help='Result file from GCN to be evaluated')
 parser.add_argument('--result_dir', dest='result_dir', default='./dataset/result/', help='Directory to save the evaluation result')
-parser.add_argument('--parallel_core', dest='parallel_core', default=3, type=int, help='Parallel process to evaluate the result')
+parser.add_argument('--parallel_core', dest='parallel_core', default=16, type=int, help='Parallel process to evaluate the result')
+parser.add_argument('--rand', dest='rand', default=False, type=int, help='Random node selection')
 
 def main():
     global args
@@ -21,7 +22,7 @@ def main():
     cfg, data = loaddata(args.eval_file)
     # number of samples
     N = cfg['sample_num']
-    # N = 10
+    #N = 10
     # Add shared data between processes
     data_save=multiprocessing.Manager().list()   
     lock= multiprocessing.Manager().Lock() 
@@ -44,8 +45,9 @@ def main():
         fp.write(json.dumps(list(data_save), indent=3))
     data_np = np.array(data_save)
     a = data_np[:,2]
-    a = a[a < 10]
+    a = a[a < 50]
     print(a.mean())
+    print(a.shape[0])
 
 def eval_multi(data_node,data_save,lock,idx):
     """
@@ -60,22 +62,27 @@ def eval_multi(data_node,data_save,lock,idx):
         
     """
     gd_mask = np.array(data_node['x'])
-    pd_mask = np.array(data_node['predict_x'])
-    overall_mask = np.logical_or(gd_mask, pd_mask)
+    if args.rand:
+        pd_mask = np.round(np.random.random_sample(gd_mask.shape)*5.0/8.5)
+        pd_mask = pd_mask.astype(int)
+    else:
+        pd_mask = np.array(data_node['predict_x'])
+        overall_mask = np.logical_or(gd_mask, pd_mask)
 
     facility_num = len(data_node['facilities'])
     client_num = len(data_node['clients'])
     node_num = facility_num + client_num
 
     # initialize the distance matrix
-    dist_overall = 999999 * np.ones((client_num, facility_num))
+    #dist_overall = 999999 * np.ones((client_num, facility_num))
+    dist_overall = data_node['d']
     # load graph from the data
-    G = load_adj(data_node['graph_dict'], node_num)
-    for i in range(facility_num):
-        # Only calculate the dist in possible facility
-        if overall_mask[i]:
-            for j in range(client_num):
-                dist_overall[j, i] = graph_dis(G, j, i, facility_num)
+    #G = load_adj(data_node['graph_dict'], node_num)
+    #for i in range(facility_num):
+    #    # Only calculate the dist in possible facility
+    #    if overall_mask[i]:
+    #        for j in range(client_num):
+    #            dist_overall[j, i] = graph_dis(G, j, i, facility_num)
 
     gd_dis_ma = np.ma.masked_array(dist_overall, \
                                    mask=np.broadcast_to(1 - gd_mask, (client_num, facility_num)))

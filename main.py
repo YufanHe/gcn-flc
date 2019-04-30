@@ -25,7 +25,7 @@ parser.add_argument('--mode', default='train', choices=['train', 'predict'],
 					help='operation mode: train or predict (default: train)')
 parser.add_argument('--epochs', default=500, type=int, metavar='N',
 					help='number of total epochs to run')
-parser.add_argument('--learning_rate', type=float, default=0.0005, 
+parser.add_argument('--learning_rate', type=float, default=0.01, 
 					help='learning rate (default: 0.005)')
 parser.add_argument('--config', dest='config', default='config.json',
 					help='hyperparameter of faster-rcnn in json format')
@@ -33,9 +33,9 @@ parser.add_argument('--batch_size', type=int, default=4,
 					help='batch size (default: 4)')
 parser.add_argument('--workers', type=int, default=4, 
 					help='workers (default: 4)')
-parser.add_argument('--no_cuda', action='store_true', default=True, 
+parser.add_argument('--no_cuda', action='store_true', default=False, 
 					help='disables CUDA training')
-parser.add_argument('--resume_file', type=str, default='/home/kuowei/Desktop/gcn-flc/checkpoint/gcn_wc1_small_bs_4_lr_5e-4_model.pkl', 
+parser.add_argument('--resume_file', type=str, default='./checkpoint/gcn_50_wc1_small_bs_4_lr_1e-2_test_model.pkl', 
 					help='the checkpoint file to resume from')
 
 tb_log_dir = './tb_log/'
@@ -52,9 +52,17 @@ def build_data_loader(mode):
 	Args: 
 	Return: dataloader for training, validation 
 	"""
+	dataset_path = './dataset/synthetic/'
+	dataset_list = []
+	for r, d, f in os.walk(dataset_path):
+		for file in f:
+			if '.json' in file:
+				dataset_list.append(os.path.join(r, file))
+	
 	if mode == 'train':
-		train_dataset_path = ['./dataset/synthetic/dataset_200_1.json', './dataset/synthetic/dataset_200_2.json', './dataset/synthetic/dataset_200_3.json']#, './dataset/synthetic/dataset_200_n1.json', './dataset/synthetic/dataset_200_n2.json', './dataset/synthetic/dataset_200_n3.json', './dataset/synthetic/dataset_200_n4.json', './dataset/synthetic/dataset_200_n5.json', './dataset/synthetic/dataset_200_n6.json', './dataset/synthetic/dataset_200_n7.json']
-		val_dataset_path = ['./dataset/synthetic/dataset_200_4.json']
+		
+		train_dataset_path = dataset_list[:3]
+		val_dataset_path = [dataset_list[3]]
 
 		train_dataset = FlcDataset(train_dataset_path, split='train')
 		train_loader = DataLoader(
@@ -72,7 +80,7 @@ def build_data_loader(mode):
 		return train_loader, val_loader
 
 	elif mode == 'predict':
-		test_dataset_path = ['./dataset/synthetic/dataset_200_5.json']#['./dataset/synthetic/dataset_200_6.json']
+		test_dataset_path = [dataset_list[4]]
 
 		test_dataset = FlcDataset(test_dataset_path, split='test')
 		test_loader = DataLoader(
@@ -88,13 +96,13 @@ def train(cfg, model, train_loader, device, optimizer, epoch, tb_writer, total_t
 
 	model.train()
 
-	for batch_count, (A, label, charge_weight, f_num, index) in enumerate(train_loader):
-
+	for batch_count, (A, label, charge_weight, f_num, index, mask) in enumerate(train_loader):
+		
 		input = torch.ones([args.batch_size, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
 		input = charge_weight.expand(-1, cfg['data']['total_nodes'], cfg['network']['input_feature'])
-		#input[:,:,0] = charge_weight
-		#input[:,:,1] = mask
+		#input[:,:,1] = charge_weight[:,:,0]
+		#input[:,:,0] = mask[:,:,0]
 
 		#cuda
 		input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
@@ -131,13 +139,13 @@ def validate(cfg, model, val_loader, device, tb_writer, total_tb_it):
 
 	with torch.no_grad():
 
-		for batch_count, (A, label, charge_weight, f_num, index) in tqdm(enumerate(val_loader)):
+		for batch_count, (A, label, charge_weight, f_num, index, mask) in tqdm(enumerate(val_loader)):
 
 			input = torch.ones([1, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
 			input = charge_weight.expand(-1, cfg['data']['total_nodes'], cfg['network']['input_feature'])
-			#input[:,:,0] = charge_weight
-			#input[:,:,1] = mask
+			#input[:,:,1] = charge_weight[:,:,0]
+			#input[:,:,0] = mask[:,:,0]
 
 			#cuda
 			input, A = input.to(device, dtype=torch.float), A.to(device, dtype=torch.float)
@@ -166,13 +174,13 @@ def test(cfg, model, test_loader, device):
 	model.eval()
 
 	test_loss = 0
-	hard_threshold = 0.8
+	hard_threshold = 0.1
 
 	test_data = test_loader.dataset.data
 
 	with torch.no_grad():
 
-		for batch_count, (A, label, charge_weight, f_num, index) in enumerate(test_loader):
+		for batch_count, (A, label, charge_weight, f_num, index, mask) in enumerate(test_loader):
 
 			input = torch.ones([1, cfg['data']['total_nodes'],
 							cfg['network']['input_feature']], dtype=torch.float64)
@@ -188,14 +196,15 @@ def test(cfg, model, test_loader, device):
 			loss = F.binary_cross_entropy(output, label)
 
 			test_loss += loss.item()
-
+			energy = np.amax(torch.squeeze(output, 0).cpu().numpy()[:f_num, 0])*0.8
 			test_data[index]['possibility_x'] = list(zip(test_data[index]['x'], torch.squeeze(output, 0).cpu().numpy()[:f_num, 0].tolist()))
 
 			thresholed_output = torch.squeeze(output, 0).cpu().numpy()[:f_num, 0]
-			thresholed_output[thresholed_output > hard_threshold] = 1
-			thresholed_output[thresholed_output <= hard_threshold] = 0
+			thresholed_output[thresholed_output > energy] = 1
+			thresholed_output[thresholed_output <= energy] = 0
 
 			test_data[index]['predict_x'] = thresholed_output.tolist()
+			test_data[index]['energy'] = energy
 
 		avg_test_loss = test_loss / len(test_loader.dataset)
 
@@ -217,7 +226,7 @@ def main():
 	
 	if args.mode == 'train':
 
-		exp_name = 'gcn' + '_wc1_small_bs_4_lr_5e-4'
+		exp_name = 'gcn' + '_old_wc1_small_bs_4_lr_1e-2_test'
 
 		tb_writer = SummaryWriter(tb_log_dir + exp_name)
 

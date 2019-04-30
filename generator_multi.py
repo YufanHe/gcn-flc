@@ -148,5 +148,5 @@ def test(file_name):
 
 
 if __name__ == '__main__':
-    #main()
-    test('./dataset/synthetic/dataset-04-28-09-18-22.json')
+    main()
+    #test('./dataset/synthetic/dataset-04-28-09-18-22.json')

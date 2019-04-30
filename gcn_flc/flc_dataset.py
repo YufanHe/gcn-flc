@@ -33,6 +33,7 @@ class FlcDataset(data.Dataset):
 		data = self.data[index]
 
 		graph_dict = data['graph_dict']
+		shortest_dis = np.array(data['d'])
 
 		charge_weight = np.zeros(self.total_nodes)
 		#charge_weight = np.full(self.total_nodes, 1000)
@@ -41,6 +42,7 @@ class FlcDataset(data.Dataset):
 
 		adj_matrix = load_adj(graph_dict, self.total_nodes)
 		DAD_matrix = normalizeA(adj_matrix, self.total_nodes)
+		#DAD_matrix = normalizeB(shortest_dis, len(data['charge']), self.total_nodes)
 
 		label = np.zeros(self.total_nodes) 
 		label[:len(data['x'])] = np.array(data['x'])
@@ -48,9 +50,9 @@ class FlcDataset(data.Dataset):
 
 		mask = np.ones(self.total_nodes)
 		mask[:len(data['charge'])] = 0
-		#mask = mask[:, np.newaxis]
+		mask = mask[:, np.newaxis]
 
-		return DAD_matrix, label, charge_weight, len(data['x']), index
+		return DAD_matrix, label, charge_weight, len(data['x']), index, mask
 
 def loaddata(file_name):
     """
@@ -90,3 +92,17 @@ def normalizeA(A, N):
 
 	#DAD[DAD < 1e-6] = 1000
 	return DAD
+
+def normalizeB(A, f_num, N):
+
+	B = np.zeros((N, N))
+	B[f_num:, :f_num] = A
+	B[:f_num, f_num:] = np.transpose(A)
+	A_I = B + np.identity(N)
+	D = np.diagflat(np.sum(A_I, axis=0))
+	D_inv = np.linalg.inv(D)
+	D_inv_2 = np.sqrt(D_inv)
+	DAD = np.matmul(D_inv_2, np.matmul(A_I, D_inv_2))
+
+	return DAD
+
