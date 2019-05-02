@@ -1,6 +1,6 @@
-# gcn-flc
+# No Fixed Adobe: GCN-FLP
 
-graph convolution network on incapacitated facility location problem  
+Graph convolution network on incapacitated facility location problem  
 
 ## Data preparation
 
