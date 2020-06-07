@@ -26,7 +26,7 @@ on the root folder which has `setup.py`.
 
 ###
 
-Generated data can be downloaded [here](https://drive.google.com/open?id=1A681BhENhVmR-PEZiLzN5iJ5paz2-40K)
+Generated data can be downloaded [here](https://drive.google.com/drive/folders/1SOcpmn9WK2kxQ0ZcVzWWXlyqOW4YOoek?usp=sharing )
 
 ## Examples
 
